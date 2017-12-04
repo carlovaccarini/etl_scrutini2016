@@ -8,7 +8,7 @@ Created on Fri Dec  1 23:40:10 2017
 """
 
 import pandas as pd
-import sys
+import sys, requests
 import numpy as np
 
 decimali_in_perc=4
@@ -19,6 +19,21 @@ dataset = pd.read_csv(filename, delimiter=";", header=0)
 #strip delle DESC
 for i in ["DESCREGIONE", "DESCPROVINCIA","DESCCOMUNE"]:
     dataset[i] = dataset[i].apply(lambda x: x.strip())
+
+#eliminazione della SICLIA
+try:
+    url = 'http://ckan.ancitel.it/api/action/datastore_search?resource_id=c381efe6-f73f-4e20-a825-547241eeb457'
+    x=requests.get(url).json()
+    regioni = list(set([x["result"]["records"][i]["Regione"].upper() for i in range(0,len(x["result"]["records"]))]))
+    regioni.append("VALLE D'AOSTA") #nel dataset usato mancava la valle d'aosta
+    dataset_regioni=[i for i in dataset["DESCREGIONE"].drop_duplicates()]
+    regioni_in_piu=[i for i in dataset_regioni if not i in regioni]
+    regioni_in_meno=[i for i in regioni if not i in dataset_regioni]
+    ind=dataset[dataset["DESCREGIONE"].isin(regioni_in_piu)]["DESCREGIONE"].index
+    for i in ind:
+        dataset.iloc[i,0]="SICILIA"
+except IndexError:
+    pass
 
 #raccolta dello sporco (dei valori sporchi)
 sporco=list()
@@ -86,7 +101,7 @@ print("eliminate le righe:\t" + str(set(indici_zero)) + " per valori con 0")
 for i in set(indici_zero):
     new_dataset = new_dataset.drop([i])
 
-# <h1>Provo a ricostruire i dati droppati per avere un altro branch di analisi</h1>
+#Provo a ricostruire i dati droppati per avere un altro branch di analisi</h1>
 #FASE DI RECUPERO
 rec_dataset = dataset.copy()
 
@@ -103,7 +118,6 @@ group_provincia["%_ELETTORI_M"]=group_provincia["ELETTORI_M"]/group_provincia["E
 
 perc_ricostruzione=((len(dataset)-len(new_dataset)) /len(dataset))
 print(str( round(perc_ricostruzione , decimali_in_perc)) + "% del dataset iniziale da recuperare")
-
 
 def rec_value_from_DESCPROVINCIA(provincia, colonna, dato_di_recupero):
     x=group_provincia.loc[[provincia],:]
@@ -144,6 +158,7 @@ def whole_list_to_int(lista):
             new_lista.append(i)
         return new_lista
 
+#questa funzione isola i casi in cui si può e non si può ricostruire il dato e lo ricostruisce oppure salta la riga
 def remake(r, prov):
     new_r=r
     #adesso ho tutti digits
@@ -222,7 +237,7 @@ else:
     print("Percentuale da recuperare inferiore al 0.0001%")
     only_epurated=True
 
-
+#raggruppo i dati, calcolo, formatto l'output, 
 def write_csv(df, epurated=True):
     group_regione_rec = df.groupby("DESCREGIONE").sum()
     group_regione_rec["REGIONE"]=group_regione_rec.index
@@ -231,7 +246,7 @@ def write_csv(df, epurated=True):
     group_regione_rec["%_VOTANTI"]=round(group_regione_rec["VOTANTI"]/group_regione_rec["ELETTORI"],decimali_in_perc)
     group_regione_rec["%_VOTI_SI"]=round(group_regione_rec["NUMVOTISI"]/group_regione_rec["VOTANTI"],decimali_in_perc)
     group_regione_rec["%_VOTI_NO"]=round(group_regione_rec["NUMVOTINO"]/group_regione_rec["VOTANTI"],decimali_in_perc)
-    group_regione_rec["%_SCHEDE BIANCHE"]=round(group_regione_rec["NUMVOTIBIANCHI"]/group_regione_rec["VOTANTI"],decimali_in_perc)
+    group_regione_rec["%_SCHEDE_BIANCHE"]=round(group_regione_rec["NUMVOTIBIANCHI"]/group_regione_rec["VOTANTI"],decimali_in_perc)
     group_regione_rec["%_SCHEDE_NON_VALIDE"]=round(group_regione_rec["NUMVOTINONVALIDI"]/group_regione_rec["VOTANTI"],decimali_in_perc)
     group_regione_rec["%_SCHEDE_CONTESTATE"]=round(group_regione_rec["NUMVOTICONTESTATI"]/group_regione_rec["VOTANTI"],decimali_in_perc)
     output=group_regione_rec.loc[:,["REGIONE", "ELETTORI_M", "ELETTORI_F", "ELETTORI", "%_VOTANTI", "%_VOTI_SI", "%_VOTI_NO", "%_SCHEDE BIANCHE", "%_SCHEDE_NON_VALIDE", "%_SCHEDE_CONTESTATE"]]
