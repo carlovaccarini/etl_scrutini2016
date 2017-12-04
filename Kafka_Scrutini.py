@@ -9,8 +9,8 @@ from confluent_kafka import Producer, Consumer, KafkaError, TopicPartition, OFFS
 import requests, sys, csv
 
 
-#filename = sys.argv[1]
-filename="ScrutiniFI.csv"
+filename = sys.argv[1]
+#filename="ScrutiniFI.csv"
 delimiter=","
 decimali_in_perc=4
 dataset = pd.read_csv(filename, delimiter=";", header=0)
@@ -22,6 +22,7 @@ list_topic = dataset["DESCREGIONE"].unique()
 setup_kafka.groupby("DESCREGIONE").count()
 
 #il famoso pezzo della SICLIA
+#questa volta vado a chiamare una libreria esterna e incrocio le liste per evidenziare mancanti o superflui
 try:
     url = 'http://ckan.ancitel.it/api/action/datastore_search?resource_id=c381efe6-f73f-4e20-a825-547241eeb457'
     x=requests.get(url).json()
@@ -41,7 +42,7 @@ p = Producer({'bootstrap.servers': 'localhost:9092' })
 
 """
 TOPIC--->REGIONE
-PARTITION--->PROVINCIA (indice della lista ordinata)
+PARTITION--->PROVINCIA (siccome è un int allora prendo l'indice della lista)
 msg.value--->record
 """
 #dove starà tutta la struttra delle partiotions
@@ -59,7 +60,7 @@ partitions_struct=set_partitions_struct(unique_reg_prov)
 def get_partition(topic, prov):
     return partitions_struct[topic].index(prov)
 
-#producer che spara su i record con encode utf-8
+#producer che spara su i record con encode utf-8 (già attivo)
 for ind in list(dataset.index):
     topic=dataset.iloc[ind, 0]
     prov=dataset.iloc[ind, 1]
@@ -69,12 +70,8 @@ for ind in list(dataset.index):
     msg=msg[:(len(msg)-1)]+"\n"
     print(topic + "\t" + prov + "\t" + msg)
     print("-"*10)
-    #p.produce(topic.replace(" ", "_").replace("'", ""), msg.encode('utf-8'), partition=get_partition(topic, prov))
-    #p.flush()
-
-
-
-
+    p.produce(topic.replace(" ", "_").replace("'", ""), msg.encode('utf-8'), partition=get_partition(topic, prov))
+    p.flush()
 
 #imposto i consumer
 def set_TopicPartitions_assignments(struttura):
@@ -86,15 +83,10 @@ def set_TopicPartitions_assignments(struttura):
 
 consumer_assignments=set_TopicPartitions_assignments(partitions_struct)
 
-
-
-
-
 #v=dict.fromkeys([ x.replace(" ","_").replace("'", "") for x in consumer_assignments.keys()]
 #serve la dict comprehension perchè con fromkeys si andava a puntare su tutti gli elementi!
 kafka_out_struct={"ELETTORI": 0, "ELETTORI_M":0, "ELETTORI_F":0, "VOTANTI":0, "VOTANTI_M":0, "NUMVOTISI":0,"NUMVOTINO":0, "NUMVOTIBIANCHI":0, "NUMVOTINONVALIDI":0, "NUMVOTICONTESTATI":0}
 kafka_out={key: dict(kafka_out_struct) for key in consumer_assignments.keys()}
-
 
 def write_on_kafka_out(msg):
     try:
@@ -118,13 +110,11 @@ def write_on_kafka_out(msg):
             kafka_out[msg.topic()]["NUMVOTINONVALIDI"]+=int(buffer[7])
             kafka_out[msg.topic()]["NUMVOTICONTESTATI"]+=int(buffer[8])
 
-#consumer che  poll from beginning 
+#consumer --> poll from beginning 
 def run_consumer(tp):
     c = Consumer({'bootstrap.servers': 'localhost:9092', 'group.id': 'CarloGroup',
                   'default.topic.config': {'auto.offset.reset': 'smallest'}})
     c.assign([tp])
-    print("SCARICO IL")    
-    print(tp)
     run=True
     while run:
         msg=c.poll(timeout=1000)
@@ -150,9 +140,7 @@ for regione in consumer_assignments.keys():
         run_consumer(tp)
 
 
-
-
-#facciamo i calcoli finali
+#facciamo i calcoli finali e formattiamo l'output
 output=dict()
 for r in kafka_out.keys():
     output[r]=dict()
@@ -167,7 +155,7 @@ for r in kafka_out.keys():
     output[r]["%_SCHEDE_NON_VALIDE"]=round(kafka_out[r]["NUMVOTINONVALIDI"]/kafka_out[r]["VOTANTI"], decimali_in_perc)
     output[r]["%_SCHEDE_CONTESTATE"]=round(kafka_out[r]["NUMVOTICONTESTATI"]/kafka_out[r]["VOTANTI"], decimali_in_perc)
     
-
+#scrivo il file
 with open("kafka-"+ filename.split(".csv")[0]  + "-aggregated.csv", 'w', newline='') as csvfile:
     #fields = ["Regione", "Elettori Maschi", "Elettori Femmine", "Elettori Totali", "Percentuali votanti", "Percentuali voti si", "Percentuali voti no", "Percentuale schede bianche", "Percentuale schede non valide", "Percentuale schede contestate"]
     fields= output[list(output.keys())[0]].keys()
@@ -175,32 +163,4 @@ with open("kafka-"+ filename.split(".csv")[0]  + "-aggregated.csv", 'w', newline
     writer.writeheader()
     for i in output.keys():
         writer.writerow(output[i])
-"""
-for i in range(0,10):
-    try:
-        flag=True
-        print(i)
-        print(5/i)
-    except (ValueError,TypeError,ZeroDivisionError):
-        print("errore")        
-        flag=False     
-    finally:
-        if flag:
-            print("fine")
-    
-
-
-running = True
-while running:
-    msg = c.poll()
-    if not msg.error():
-        print(msg.value())
-        print(msg.topic())
-        print(msg.timestamp())
-        print(msg.partition())
-        print(msg.key())                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
-        #print('Received message: %s' % msg.value().decode('utf-8'))
-    elif msg.error().code() != KafkaError._PARTITION_EOF:
-        print(msg.error())
-        running = False
-c.close()"""  
+  
