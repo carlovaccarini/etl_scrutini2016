@@ -10,7 +10,7 @@ The main features discolsed:
 * Several NaN values
 * Need to perform votes validation using the following formula: VOTANTI=NUMVOTISI+NUMVOTINO+NUMVOTIBIANCHI+NUMVOTINONVALIDI+NUMVOTICONTESTATI
 * In Umbria it was a Fraud
-* In analysis of the DESCREGIONE, DESCPROVINCIA, DESCCOMUNE were discovered a new region (SICLIA), and cities without names (they were kept in the analysis).
+* In analysis of the DESCREGIONE, DESCPROVINCIA, DESCCOMUNE were discovered a new region (SICLIA), and towns without names (they were kept in the analysis).
 * Discovered dirty data like: not digits, NaN, digits concat with chars.
 
 Some data could be recovered and used in other branch of analysis, indeed the Python script could produce 2 files of aggregated data
@@ -19,7 +19,7 @@ Some data could be recovered and used in other branch of analysis, indeed the Py
 It was the result of the noteebook cleaned by the analysis code lines.
 This script produce 2 files:
 1. <input_filename>-aggregated.csv: data are purged by dirty data with the above features.
-2. withRecovery_<input_filename>-aggregated.csv: the dataset used in the previous file is enriched with dirty data recovered. The recovery function cleans digits from chars, re-compute the number of ELETTORI or VOTANTI, in the small cities, by the trend in the Province.
+2. withRecovery_<input_filename>-aggregated.csv: the dataset used in the previous file is enriched with dirty data recovered. The recovery function cleans digits from chars, re-compute the number of ELETTORI or VOTANTI, in the small towns, by the trend in the Province.
 
 # Kafka_Scrutini.py
 The python script include confluent-kafka-python library to instantiate a Producer and a Consumer.
