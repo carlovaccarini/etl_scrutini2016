@@ -86,12 +86,6 @@ print("eliminate le righe:\t" + str(set(indici_zero)) + " per valori con 0")
 for i in set(indici_zero):
     new_dataset = new_dataset.drop([i])
 
-
-"""
-print("i comuni sospetti per 0 controlli:")
-len(new_dataset[(new_dataset["NUMVOTICONTESTATI"]==0) & (new_dataset["NUMVOTINONVALIDI"]==0) & (new_dataset["NUMVOTIBIANCHI"]==0)].iloc[:,[2,3,9,10,11]])
-"""
-
 # <h1>Provo a ricostruire i dati droppati per avere un altro branch di analisi</h1>
 #FASE DI RECUPERO
 rec_dataset = dataset.copy()
