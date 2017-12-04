@@ -15,15 +15,16 @@ The main features discolsed:
 
 Some data could be recovered and used in other branch of analysis, indeed the Python script could produce 2 files of aggregated data
 
-# Python Script
+# ETL_Scruitini.py
 It was the result of the noteebook cleaned by the analysis code lines.
 This script produce 2 files:
 1. <input_filename>-aggregated.csv: data are purged by dirty data with the above features.
 2. withRecovery_<input_filename>-aggregated.csv: the dataset used in the previous file is enriched with dirty data recovered. The recovery function cleans digits from chars, re-compute the number of ELETTORI or VOTANTI, in the small cities, by the trend in the Province.
 
-# Kafka Python Script
+# Kafka_Scrutini.py
 The python script include confluent-kafka-python library to instantiate a Producer and a Consumer.
 To run the exercise you need to use the property file __server-scrutini.properties__.
+The data are cleaned with the intuitions showed above, but with different methodologies. 
 # Kafka SetUp:
     bin/zookeeper-server-start.sh config/zookeeper.properties
     bin/kafka-server-start.sh  config/server-scrutini.properties
@@ -31,9 +32,18 @@ To run the exercise you need to use the property file __server-scrutini.properti
 #modify on server.properties "num.partitions=15" <---the max num of province in each regione (non è ottimizzato, lo so...)
 #comment on server.properties "#log.retention.hours=168"
 #add on server.properties "log.retention.minutes=1"
+The topics will be generated automatically with 15 partitions (the max num of province in a region is 12). 
+* Topic --> REGIONE
+* Partition --> PROVINCIA
+The producers poll each topic and finally aggregate the data and write on output file.
+
+# spark_scala_ETL_Scrutini
+The spark job requires 2 args, inputfile_path and outputfile_path.
+The data are cleaned with previous intuitions.
+With RDD maps, filters and reduce functions the data is trasformed and finally converted in DataFrame and write out using com.databricks.spark.sql framework.
 
 # Prerequisites to run:
 * Python3.X
 * pip3 install librdkafka-dev
 * pip3 install confluent-kafka
-* spark2.0 with Scala2.11
+* spark2.0 with Scala2.11 (but tested only with spark1.6, those codelines are commented)
